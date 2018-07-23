@@ -1,0 +1,2 @@
+#python validate.py --model  models.net_pinch_vgg_lambda.VGG16 --w_lambda 1.0 --dataroot ../data/artificial/train    --dataroot_val ../data/artificial/test   --batch_size 48  --load_size 256 --checkpoints_dir $1     --gpu_ids $2 
+python validate.py --model  models.net_pinch_vgg_lambda_crop.VGG16 --w_lambda 1.0 --save_epoch_freq 10 --dataroot ../data/0704/cls/artificial_female/20001/train    --dataroot_val ../data/0704/cls/artificial_female/20001/test   --batch_size 48  --load_size 256 --checkpoints_dir $1     --gpu_ids $2
