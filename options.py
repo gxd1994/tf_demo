@@ -14,8 +14,8 @@ class BaseOptions():
         self.parser.add_argument('--name', type=str, default='config',
                                  help='name of the experiment. It decides where to store samples and models')
         self.parser.add_argument('--num_threads', default=4, type=int, help='# threads for loading data')
-        self.parser.add_argument('--batch_size', type=int, default=1, help='input batch size')
-        self.parser.add_argument('--load_size', type=int, default=512, help='scale images to this size')
+        self.parser.add_argument('--batch_size', type=int, default=32, help='input batch size')
+        self.parser.add_argument('--load_size', type=int, default=256, help='scale images to this size')
         # self.parser.add_argument('--crop_size', type=int, default=32, help='then crop to this size')
         # self.parser.add_argument('--no_flip', action='store_true',
         #                          help='if specified, do not flip the images for data argumentation')
@@ -23,9 +23,11 @@ class BaseOptions():
         self.parser.add_argument('--num_channels', type=int, default=3,
                                  help='image channels of inputs')
         # config for models
-        self.parser.add_argument('--model', type=str, default='models.net_segmentation.Seg',
+        self.parser.add_argument('--model', type=str, default='models.net_classification.VGG16',
                                  help='chooses which model to use.')
-        self.parser.add_argument('--class_num', type=int, default=7, help='class num')
+
+        self.parser.add_argument('--num_classes', type=int, default=10,
+                                 help='image channels of inputs')
 
         # config for experiments
         self.parser.add_argument('--gpu_ids', type=str, default='0', help='gpu ids: e.g. 0  0,1,2, 0,2. use -1 for CPU')
@@ -71,17 +73,16 @@ class TrainOptions(BaseOptions):
         #expr save path
         #self.parser.add_argument('--name', type=str, default='config',
         #                         help='name of the experiment. It decides where to store samples and models')
-        self.parser.add_argument('--checkpoints_dir', type=str, default='./checkpoints/bs11', help='models are saved here')
+        self.parser.add_argument('--checkpoints_dir', type=str, default='./checkpoints/bs2', help='models are saved here')
+
 
         #train dataset path
-        # self.parser.add_argument('--dataroot', required=True,help='file list')
-        self.parser.add_argument('--dataroot', type=str, default='F:\\nielian\\0718\\test', help='dataset path prefix')
-        self.parser.add_argument('--path_prefix', type=str, default='../../data/cifar10/', help='dataset path prefix')
-
+        self.parser.add_argument('--dataroot', type=str, default='./train_final.txt', help='dataset path prefix')
         #validation dataset_path
-        # self.parser.add_argument('--dataroot_val', required=True,help='file list')
-        self.parser.add_argument('--dataroot_val', type=str, default='F:\\nielian\\0718\\test\\val', help='dataset path prefix')
-        self.parser.add_argument('--path_prefix_val', type=str, default='./data/cifar10/', help='dataset path prefix')
+        self.parser.add_argument('--dataroot_val', type=str, default='./test_final.txt', help='dataset path prefix')
+        #dataset prefix
+        self.parser.add_argument('--path_prefix', type=str, default='../', help='dataset path prefix')
+
 
         self.parser.add_argument('--train_collection', type=str, default='train_collection', help='train_collection')
         self.parser.add_argument('--val_collection', type=str, default='val_collection', help='val_collection')
@@ -92,7 +93,7 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--print_freq', type=int, default=10,
                                  help='frequency of showing training results on console')
 
-        self.parser.add_argument('--save_epoch_freq', type=int, default=10,
+        self.parser.add_argument('--save_epoch_freq', type=int, default=1,
                                  help='frequency of saving checkpoints at the end of epochs')
 
         self.parser.add_argument('--eval_freq', type=int, default=500,
@@ -114,9 +115,6 @@ class TrainOptions(BaseOptions):
 
         self.parser.add_argument('--restore_spec_model', type=str, default=None, help='restrore from specific model')
         self.parser.add_argument('--save_results_path', type=str, default="./results", help='restrore from specific model')
-
-
-
 
 
 class TestOptions(BaseOptions):
