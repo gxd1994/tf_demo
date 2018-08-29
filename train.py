@@ -1,8 +1,28 @@
 import tensorflow as tf
-import util
+import util,os
 from options import TrainOptions
 from data_loader import DataLoader, DataLoader_Val
 from tensorflow.contrib.slim.nets import resnet_v2
+
+
+
+
+def calc_size(batch_size):
+    if batch_size == 16:
+        return 4,4
+    elif batch_size == 32:
+        return 4,8
+    elif batch_size == 64:
+        return 8,8
+    elif batch_size == 8:
+        return 2,4
+    elif batch_size == 1:
+        return 1,1
+    else:
+        print("no win size according to batch_size")
+        raise NotImplementedError
+
+
 
 def restore_model(sess, t_vars, opt):
     global_step_val = 0
@@ -45,7 +65,7 @@ def train(opt):
 
 
         model = util.parse_attr(opt.model)(opt)
-        model.train(global_step, images_tensor, labels_tensor, is_training, dropout_rate)
+        model.train(global_step, images_tensor, labels_tensor, is_training, dropout_rate, dataloader.dataset_size))
         t_vars = tf.trainable_variables()
         #print("t_vars", t_vars)
         summary_train_op = tf.summary.merge_all(opt.train_collection)
@@ -63,9 +83,9 @@ def train(opt):
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
         try:
             while not coord.should_stop():
-                start_epoch = global_step_val // (dataloader.dataset_size // opt.batch_size) + 1
+                start_epoch = global_step_val // max(1, dataloader.dataset_size // opt.batch_size) + 1
                 for epoch in range(start_epoch, opt.epochs + 1):
-                    for i in range(dataloader.dataset_size // opt.batch_size):
+                    for i in range(max(1,dataloader.dataset_size // opt.batch_size)):
                         global_step_val += 1
                         # train
                         _, loss_val, acc_val, summary_train = sess.run(
@@ -83,7 +103,7 @@ def train(opt):
                         if global_step_val % opt.eval_freq == 0:
                             eval_loss_val_sum = 0
                             eval_acc_val_sum = 0
-                            val_count = dataloader_val.dataset_size // opt.batch_size
+                            val_count = max(1, dataloader_val.dataset_size // opt.batch_size)
                             for j in range(val_count):
                                 eval_loss_val, eval_acc_val, eval_summary_val = sess.run(
                                                 [model.loss_val, model.acc_val, summary_val_op],
@@ -93,6 +113,10 @@ def train(opt):
                                 eval_acc_val_sum += eval_acc_val
                                 print('----------- Step %d:-------------' % global_step_val)
                                 print("EVAL Batch, total count:{}  cur:{}  Epoch:{},  loss:{},  acc:{}".format(val_count, j, epoch, eval_loss_val, eval_acc_val))
+
+                                # util.save_images(sample_imgs, calc_size(opt.batch_size),
+                                #                  os.path.join(opt.save_results_path,
+                                                              "epoch_%d_count_%d_val_%d.jpg" % (epoch, global_step_val, j)))
 
                                 train_writer.add_summary(eval_summary_val, global_step_val)
                                 train_writer.flush()

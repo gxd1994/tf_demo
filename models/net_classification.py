@@ -14,6 +14,23 @@ from tensorflow.contrib.slim.nets import resnet_v2
 class BaseModel():
     def __init__(self, opt):
         self.opt = opt
+    def decay_weight(self, global_step, w_init, w_end, start_step, decay_steps, name='decay_param'):
+        """ Adam optimizer with learning rate 0.0002 for the first 100k steps (~100 epochs)
+            and a linearly decaying rate that goes to zero over the next 100k steps
+        """
+        starter_w = w_init
+        end_w = w_end
+        start_decay_step = start_step
+        decay_steps = decay_steps
+        w_cur = (
+                 tf.where(
+                    tf.greater_equal(global_step, start_decay_step), tf.train.polynomial_decay(starter_w, global_step - start_decay_step,
+                    decay_steps, end_w, power=1.0), starter_w)
+        )
+
+        tf.summary.scalar('param_decay/{}'.format(name), w_cur, collections=[self.opt.train_collection])
+
+        return w_cur
 
     def calc_loss(self, predictions, labels):
         classification_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=predictions, labels=labels))
@@ -23,8 +40,12 @@ class BaseModel():
         return total_loss
 
     def update_learning_rate(self, lr, global_step):
-        tf.summary.scalar("lr", lr, collections=[self.opt.train_collection])
-        return lr
+        start_step = int(self.opt.start_epoch_decay * self.train_dataset_size / self.opt.batch_size)
+        decay_steps = int(self.opt.end_epoch_decay  * self.train_dataset_size / self.opt.batch_size)
+        cur_lr = self.decay_weight(global_step, lr, 0, start_step = start_step, decay_steps = decay_steps, name="lr")
+        
+        # tf.summary.scalar("lr", lr, collections=[self.opt.train_collection])
+        return cur_lr
 
     def make_optimizer(self, loss, global_step, t_vars):
         cur_lr = self.update_learning_rate(self.opt.lr, global_step)
@@ -41,17 +62,18 @@ class VGG16(BaseModel):
         #pass
 
     def norm(self, inputs, is_training, norm="instance"):
-        if norm == "instance":
-            print("instance norm")
-            out = tf.contrib.layers.instance_norm(inputs)
-        elif norm == "batch_norm":
-            print("batch norm")
-            out = tf.contrib.layers.batch_norm(inputs, decay=0.9, scale=True, updates_collections=None, is_training=is_training)
-        else:
-            print("no normaliziation")
-            out = inputs
-            raise NotImplementedError
-        return out
+        with  tf.variable_scope(name):
+            if norm == "instance":
+                print("instance norm")
+                out = tf.contrib.layers.instance_norm(inputs)
+            elif norm == "batch_norm":
+                print("batch norm")
+                out = tf.layers.batch_normalization(inputs, momentum=0.9, scale=True, training=is_training)
+            else:
+                print("no normaliziation")
+                out = inputs
+                raise NotImplementedError
+            return out
 
 
     def built_network(self, inputs, is_training, dropout_rate):
@@ -87,8 +109,9 @@ class VGG16(BaseModel):
         #
         #     return net
 
-    def train(self, global_step, images, labels, is_training, dropout_rate):
-
+    def train(self, global_step, images, labels, is_training, dropout_rate, dataset_size):
+        self.global_step = global_step
+        self.train_dataset_size = dataset_size
         with tf.variable_scope("vgg16") as scope:
             preds = self.built_network(images,is_training, dropout_rate)
 

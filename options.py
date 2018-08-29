@@ -57,6 +57,9 @@ class BaseOptions():
                 opt_file.write('%s: %s\n' % (str(k), str(v)))
             opt_file.write('-------------- End ----------------\n')
 
+        #save save_results_path
+        util.mkdirs(self.opt.save_results_path)
+
         # save script to the disk
         file_name = os.path.join(expr_dir, 'run_' + self.opt.phase + '.sh')
         with open(file_name, 'wt') as opt_file:
